@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+var help bool
 var list bool
 var verbose bool
 
@@ -17,13 +18,14 @@ func init() {
 		fmt.Fprintf(os.Stderr, "Usage: gir [options] package[.item]\n\nGir shows all items in the package scope.\n\nOptions:\n")
 		flag.PrintDefaults()
 	}
+	flag.BoolVar(&help, "h", false, "Show this `help`")
 	flag.BoolVar(&list, "l", false, "Show as a `list`")
 	flag.BoolVar(&verbose, "v", false, "Show more `verbose` details (use with -list)")
 }
 
 func main() {
 	flag.Parse()
-	if !flag.Parsed() || flag.NArg() < 1 {
+	if !flag.Parsed() || help || flag.NArg() < 1 {
 		flag.Usage()
 		os.Exit(1)
 	}
