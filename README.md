@@ -1,5 +1,5 @@
 # gir
-A tools to list all exposed items in scope of a Go package (somehow similar to Python `dir()`).
+A tools to list all exported items in scope of a Go package (somehow similar to Python `dir()`).
 
 # Install
 `GO111MODULE=on go get github.com/m4ns0ur/gir`
@@ -18,6 +18,8 @@ Options:
     	Show this help
   -l list
     	Show as a list
+  -u unexported
+    	Show unexported items as well
   -v verbose
     	Show more verbose details (use with -list)
 ```

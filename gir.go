@@ -6,13 +6,21 @@ import (
 	"go/types"
 	"os"
 	"strings"
+	"unicode"
 
 	"golang.org/x/tools/go/packages"
 )
 
-var help bool
-var list bool
-var verbose bool
+type localScope struct {
+	*types.Scope
+}
+
+var (
+	help    bool
+	unexp   bool
+	list    bool
+	verbose bool
+)
 
 func init() {
 	flag.Usage = func() {
@@ -20,6 +28,7 @@ func init() {
 		flag.PrintDefaults()
 	}
 	flag.BoolVar(&help, "h", false, "Show this `help`")
+	flag.BoolVar(&unexp, "u", false, "Show `unexported` items as well")
 	flag.BoolVar(&list, "l", false, "Show as a `list`")
 	flag.BoolVar(&verbose, "v", false, "Show more `verbose` details (use with -list)")
 }
@@ -47,7 +56,7 @@ func main() {
 		it = pp[1]
 	}
 
-	pp, err := packages.Load(&packages.Config{Mode: packages.LoadTypes}, pn)
+	pp, err := packages.Load(&packages.Config{Mode: packages.LoadImports | packages.NeedTypes | packages.NeedTypesSizes}, pn)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -65,7 +74,14 @@ func main() {
 			os.Exit(0)
 		}
 
-		nn := s.Names()
+		var nn []string
+		if unexp {
+			nn = s.Names()
+		} else {
+			ls := &localScope{s}
+			nn = ls.exported()
+		}
+
 		if !list {
 			fmt.Printf("[%s]\n", strings.Join(nn, ", "))
 			os.Exit(0)
@@ -88,4 +104,14 @@ func main() {
 
 func stripInternalRef(o types.Object, pn string) string {
 	return strings.Replace(o.String(), pn+".", "", -1)
+}
+
+func (s *localScope) exported() []string {
+	var ss []string
+	for _, n := range s.Names() {
+		if unicode.IsUpper([]rune(n)[0]) {
+			ss = append(ss, n)
+		}
+	}
+	return ss
 }
