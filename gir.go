@@ -62,7 +62,7 @@ func main() {
 	}
 
 	for _, p := range pp {
-		ds := defs(p.TypesInfo.Defs)
+		ds := defs(p.TypesInfo.Defs).filter()
 		if it != "" {
 			if o, ok := ds.lookup(it); ok {
 				fmt.Println(stripInternalRef(o, pn))
@@ -100,6 +100,20 @@ func main() {
 
 func stripInternalRef(o types.Object, pn string) string {
 	return strings.Replace(o.String(), pn+".", "", -1)
+}
+
+func (ds defs) filter() defs {
+	m := make(map[string]bool)
+	dds := make(defs)
+	for k, v := range ds {
+		if v != nil {
+			if _, ok := m[v.Name()]; !ok {
+				m[v.Name()] = true
+				dds[k] = v
+			}
+		}
+	}
+	return dds
 }
 
 func (ds defs) all() []string {
