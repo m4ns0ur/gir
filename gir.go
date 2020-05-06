@@ -6,7 +6,6 @@ import (
 	"go/types"
 	"os"
 	"strings"
-	"unicode"
 
 	"golang.org/x/tools/go/packages"
 )
@@ -56,7 +55,7 @@ func main() {
 		it = pp[1]
 	}
 
-	pp, err := packages.Load(&packages.Config{Mode: packages.LoadImports | packages.NeedTypes | packages.NeedTypesSizes}, pn)
+	pp, err := packages.Load(&packages.Config{Mode: packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles | packages.NeedImports | packages.NeedDeps | packages.NeedExportsFile | packages.NeedTypes | packages.NeedSyntax | packages.NeedTypesInfo | packages.NeedTypesSizes}, pn)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -109,7 +108,7 @@ func stripInternalRef(o types.Object, pn string) string {
 func (s *localScope) exported() []string {
 	var ss []string
 	for _, n := range s.Names() {
-		if unicode.IsUpper([]rune(n)[0]) {
+		if s.Lookup(n).Exported() {
 			ss = append(ss, n)
 		}
 	}
