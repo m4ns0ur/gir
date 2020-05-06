@@ -3,16 +3,16 @@ package main
 import (
 	"flag"
 	"fmt"
+	"go/ast"
 	"go/types"
 	"os"
+	"sort"
 	"strings"
 
 	"golang.org/x/tools/go/packages"
 )
 
-type localScope struct {
-	*types.Scope
-}
+type defs map[*ast.Ident]types.Object
 
 var (
 	help    bool
@@ -62,23 +62,22 @@ func main() {
 	}
 
 	for _, p := range pp {
-		s := p.Types.Scope()
+		ds := defs(p.TypesInfo.Defs)
 		if it != "" {
-			o := s.Lookup(it)
-			if o == nil {
+			if o, ok := ds.lookup(it); ok {
+				fmt.Println(stripInternalRef(o, pn))
+				os.Exit(0)
+			} else {
 				fmt.Fprintf(os.Stderr, "Couldn't find exported item: %q in the scope of package: %q\n", it, pn)
 				os.Exit(1)
 			}
-			fmt.Println(stripInternalRef(o, pn))
-			os.Exit(0)
 		}
 
 		var nn []string
 		if unexp {
-			nn = s.Names()
+			nn = ds.all()
 		} else {
-			ls := &localScope{s}
-			nn = ls.exported()
+			nn = ds.exported()
 		}
 
 		if !list {
@@ -87,14 +86,12 @@ func main() {
 		}
 
 		for _, n := range nn {
-			o := s.Lookup(n)
-			if o == nil {
-				continue
-			}
-			if verbose {
-				fmt.Println(stripInternalRef(o, pn))
-			} else {
-				fmt.Printf("%s\t%s\n", strings.Split(o.String(), " ")[0], o.Name())
+			if o, ok := ds.lookup(n); ok {
+				if verbose {
+					fmt.Println(stripInternalRef(o, pn))
+				} else {
+					fmt.Printf("%s\t%s\n", strings.Split(o.String(), " ")[0], o.Name())
+				}
 			}
 		}
 	}
@@ -105,12 +102,33 @@ func stripInternalRef(o types.Object, pn string) string {
 	return strings.Replace(o.String(), pn+".", "", -1)
 }
 
-func (s *localScope) exported() []string {
-	var ss []string
-	for _, n := range s.Names() {
-		if s.Lookup(n).Exported() {
-			ss = append(ss, n)
+func (ds defs) all() []string {
+	var ns []string
+	for _, v := range ds {
+		if v != nil {
+			ns = append(ns, v.Name())
 		}
 	}
-	return ss
+	sort.Strings(ns)
+	return ns
+}
+
+func (ds defs) exported() []string {
+	var ns []string
+	for _, v := range ds {
+		if v != nil && v.Exported() {
+			ns = append(ns, v.Name())
+		}
+	}
+	sort.Strings(ns)
+	return ns
+}
+
+func (ds defs) lookup(n string) (types.Object, bool) {
+	for _, v := range ds {
+		if v != nil && v.Name() == n {
+			return v, true
+		}
+	}
+	return nil, false
 }

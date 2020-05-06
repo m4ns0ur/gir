@@ -2,7 +2,7 @@
 A tools to list all exported items in scope of a Go package (somehow similar to Python `dir()`).
 
 # Install
-`GO111MODULE=on go get github.com/m4ns0ur/gir`
+`go get -u github.com/m4ns0ur/gir`
 
 Make sure `$GOPATH/bin` is in the path.
 
